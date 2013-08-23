@@ -14,6 +14,8 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 
+from ChessBoard import ChessBoard
+
 SQUARES = [
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", 
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7", 
@@ -24,6 +26,21 @@ SQUARES = [
     "a2", "b2", "c2","d2", "e2", "f2", "g2", "h2", 
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
 ]
+
+IMAGE_PIECE_MAP = {
+    "B": "wb", 
+    "R": "wr", 
+    "N": "wn", 
+    "Q": "wq", 
+    "K": "wk", 
+    "P": "wp",
+    "b": "bb", 
+    "r": "br", 
+    "n": "bn", 
+    "q": "bq", 
+    "k": "bk", 
+    "p": "bp"
+}
 
 ROW_COORDS = (
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
@@ -50,9 +67,12 @@ class ChessCoord(Label):
     on = BooleanProperty(False)
 
     
-class ChessSquare(Button):
+class ChessSquare(ToggleButton):
     coord = NumericProperty(0)
     piece = ObjectProperty(None)
+
+    def add_piece(self, piece):
+        self.piece = piece
 
     def on_piece(self, instance, piece):
         self.add_widget(piece)
@@ -60,18 +80,15 @@ class ChessSquare(Button):
 
     def on_size(self, instance, size):
         print '%s Size: %s' % (get_square_abbr(self.coord), size)
-
         if self.piece:
-            self.piece.size = size
+            self.piece.set_size(size)
 
 
     def on_pos(self, instance, pos):
         print '%s Positions: %s' % (get_square_abbr(self.coord), pos)
 
         if self.piece:
-            self.piece.pos = pos
-
-        print self.piece
+            self.piece.set_pos(pos)
 
 
 class ChessPiece(Scatter):
@@ -82,16 +99,27 @@ class ChessPiece(Scatter):
         super(ChessPiece, self).__init__(**kwargs)
 
         self.image = Image(source=image_source)
-        # self.image.allow_stretch = True
+        self.image.allow_stretch = True
         self.add_widget(self.image)
         self.auto_bring_to_front = True
 
+    def set_size(self, size):
+        self.image.size = size[0], size[1]
+
+    def set_pos(self, pos):
+        self.pos = pos[0], pos[1]
 
 
     def on_touch_up(self, touch):
         if super(ChessPiece, self).on_touch_up(touch):
             self.pos = self.parent.pos
+            # self.parent.state = 'normal'
 
+
+    def on_touch_down(self, touch):
+        if super(ChessPiece, self).on_touch_down(touch):
+            # self.parent._do_press()
+            pass
 
 
 class ChessGameApp(App):
@@ -101,6 +129,19 @@ class ChessGameApp(App):
 
     main_text = ObjectProperty(None)
     chess_grid = ObjectProperty(None)
+
+    chessboard = ChessBoard()
+
+    def refresh_board(self):
+
+        squares = [item for sublist in self.chessboard.getBoard() for item in sublist]
+
+        for i, square in enumerate(squares):
+            piece = None
+            if square != '.':
+                piece = ChessPiece('resources/images/%s.png' % IMAGE_PIECE_MAP[square])
+
+            self.squares[i].add_piece(piece)
 
     def build(self):
         # Had to manually load due to not being able to 
@@ -134,8 +175,7 @@ class ChessGameApp(App):
             self.squares.append(bt)
 
 
-        self.squares[-1].piece = ChessPiece('resources/images/wn.png')
-
+        self.refresh_board()
        
         return root
 
