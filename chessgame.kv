@@ -1,0 +1,28 @@
+#:kivy 1.8.0
+
+<ChessCoord>:
+    size_hint: 0.5, 0.5
+
+<ChessSquare>:
+    group: 'board'
+
+<ChessPiece>:
+    scale_min: 0.5
+
+
+BoxLayout:
+
+    id: game
+    size_hint: 1, 1
+    orientation: "vertical"
+
+    chess_grid: chess_grid
+                
+
+    GridLayout:
+        id: chess_grid
+        rows: 9
+        cols: 9
+        padding: 10
+        spacing: 0
+        size_hint: 1, 1
