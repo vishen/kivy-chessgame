@@ -69,32 +69,47 @@ class ChessCoord(Label):
     
 class ChessSquare(ToggleButton):
     coord = NumericProperty(0)
-    piece = ObjectProperty(None)
+    piece = ObjectProperty(None, allownone=True)
 
     def add_piece(self, piece):
+        self.remove_widget(self.piece)
         self.piece = piece
 
     def on_piece(self, instance, piece):
-        self.add_widget(piece)
+
+        if piece:
+            piece.set_size(self.size)
+            piece.set_pos(self.pos)
+            self.add_widget(piece)
+
+
+    def remove_piece(self):
+        if self.piece:
+            self.remove_widget(self.piece)
 
 
     def on_size(self, instance, size):
-        print '%s Size: %s' % (get_square_abbr(self.coord), size)
+        # print '%s Size: %s' % (get_square_abbr(self.coord), size)
         if self.piece:
             self.piece.set_size(size)
 
 
     def on_pos(self, instance, pos):
-        print '%s Positions: %s' % (get_square_abbr(self.coord), pos)
-
+        # print '%s Positions: %s' % (get_square_abbr(self.coord), pos)
         if self.piece:
             self.piece.set_pos(pos)
+
+    def on_touch_down(self, touch):
+        if super(ChessSquare, self).on_touch_down(touch):
+            app.process_move(self.coord, self)
 
 
 class ChessPiece(Scatter):
 
     image = ObjectProperty(None)
-    
+    moving = BooleanProperty(False)
+
+
     def __init__(self, image_source, **kwargs):
         super(ChessPiece, self).__init__(**kwargs)
 
@@ -109,16 +124,25 @@ class ChessPiece(Scatter):
     def set_pos(self, pos):
         self.pos = pos[0], pos[1]
 
+    def on_touch_move(self, touch):
+        if super(ChessPiece, self).on_touch_move(touch):
+            self.moving = True
 
     def on_touch_up(self, touch):
         if super(ChessPiece, self).on_touch_up(touch):
-            self.pos = self.parent.pos
+            if self.parent and self.moving:
+                app.check_piece_in_square(self)
+                # app.process_move(self.parent.coord, self.parent)
+                # self.pos = self.parent.pos
             # self.parent.state = 'normal'
+
+            self.moving = False
 
 
     def on_touch_down(self, touch):
         if super(ChessPiece, self).on_touch_down(touch):
             # self.parent._do_press()
+            # app.process_move(self.parent.coord)
             pass
 
 
@@ -131,6 +155,41 @@ class ChessGameApp(App):
     chess_grid = ObjectProperty(None)
 
     chessboard = ChessBoard()
+
+    prev_coord = None
+    current_coord = None
+
+    def check_piece_in_square(self, piece):
+        for square in self.squares:
+            if square.collide_point(piece.pos[0], piece.pos[1]):
+                print
+                print square.coord, square.pos
+                print piece.pos
+                return self.process_move(square.coord, square)
+
+    def process_move(self, coord, square):
+        if self.prev_coord != coord:
+            self.prev_coord = self.current_coord
+            self.current_coord = coord
+
+        # A move has been made
+        if self.prev_coord and self.current_coord:
+
+            pc = SQUARES[self.prev_coord]
+            cc = SQUARES[self.current_coord]
+            print pc, cc
+            self.chessboard.addTextMove('%s-%s' % (pc, cc))
+
+            square.state = 'down'
+            square.state = 'normal'
+                # square.remove_piece()
+
+            self.prev_coord = None
+            self.current_coord = None
+
+            self.refresh_board()
+
+
 
     def refresh_board(self):
 
