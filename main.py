@@ -119,6 +119,7 @@ class ChessPiece(Scatter):
         self.auto_bring_to_front = True
 
     def set_size(self, size):
+        self.size = size[0], size[1]
         self.image.size = size[0], size[1]
 
     def set_pos(self, pos):
@@ -161,11 +162,9 @@ class ChessGameApp(App):
 
     def check_piece_in_square(self, piece):
         for square in self.squares:
-            if square.collide_point(piece.pos[0], piece.pos[1]):
-                print
-                print square.coord, square.pos
-                print piece.pos
+            if square.collide_point(piece.center_x, piece.center_y):
                 return self.process_move(square.coord, square)
+
 
     def process_move(self, coord, square):
         if self.prev_coord != coord:
@@ -183,17 +182,25 @@ class ChessGameApp(App):
             square.state = 'down'
             square.state = 'normal'
                 # square.remove_piece()
-
+            self.refresh_board()
             self.prev_coord = None
             self.current_coord = None
 
-            self.refresh_board()
+           
 
 
 
     def refresh_board(self):
 
         squares = [item for sublist in self.chessboard.getBoard() for item in sublist]
+
+        if self.prev_coord and self.current_coord:
+            prev_piece = self.squares[self.prev_coord].piece
+            self.squares[self.prev_coord].remove_piece()
+            self.squares[self.current_coord].add_piece(prev_piece)
+
+            return
+
 
         for i, square in enumerate(squares):
             piece = None
