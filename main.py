@@ -14,6 +14,8 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 
+from kivy.utils import get_color_from_hex
+
 from ChessBoard import ChessBoard
 
 SQUARES = [
@@ -53,12 +55,12 @@ COLS_COORS = (
 COLOR_MAPS = {
     'black': (1, 1, 1, 1),
     'white': (0, 0, 0, 1),
-    'grey': (0.7, 0.7, 0.6, 1),
-    'dark_blue': (0.2, 0.3, 0.8, 0.5),
+    'cream': get_color_from_hex('#ffffcc'),
+    'brown': get_color_from_hex('#bf9e7e'),
 }
 
-DARK_SQUARE = COLOR_MAPS['dark_blue']
-LIGHT_SQUARE = COLOR_MAPS['grey']
+DARK_SQUARE = COLOR_MAPS['brown']
+LIGHT_SQUARE = COLOR_MAPS['cream']
 
 def get_square_abbr(coord):
     return SQUARES[coord]
@@ -67,9 +69,13 @@ class ChessCoord(Label):
     on = BooleanProperty(False)
 
     
-class ChessSquare(ToggleButton):
+class ChessSquare(Button):
     coord = NumericProperty(0)
     piece = ObjectProperty(None, allownone=True)
+
+    def __init__(self, background_color, **kwargs):
+        super(ChessSquare, self).__init__(**kwargs)
+        self.background_color = background_color
 
     def add_piece(self, piece):
         self.remove_widget(self.piece)
@@ -112,6 +118,7 @@ class ChessPiece(Scatter):
 
     image = ObjectProperty(None)
     moving = BooleanProperty(False)
+    allowed_to_move = BooleanProperty(False)
 
 
     def __init__(self, image_source, **kwargs):
@@ -133,6 +140,8 @@ class ChessPiece(Scatter):
         self.pos = pos[0], pos[1]
 
     def on_touch_move(self, touch):
+        if not self.allowed_to_move:
+            return
         if super(ChessPiece, self).on_touch_move(touch):
             self.moving = True
 
@@ -146,8 +155,6 @@ class ChessPiece(Scatter):
 
     def on_touch_down(self, touch):
         if super(ChessPiece, self).on_touch_down(touch):
-            # self.parent._do_press()
-            # app.process_move(self.parent.coord)
             pass
 
 
@@ -179,23 +186,43 @@ class ChessGameApp(App):
             self.prev_coord = self.current_coord
             self.current_coord = coord
 
+        valid_move = False
         # A move has been made
         if self.prev_coord and self.current_coord:
 
             pc = SQUARES[self.prev_coord]
             cc = SQUARES[self.current_coord]
             print pc, cc
-            self.chessboard.addTextMove('%s-%s' % (pc, cc))
+            if self.chessboard.addTextMove('%s-%s' % (pc, cc)):
+                valid_move = True
+
+                # Update game notation
+                all_moves = self.chessboard.getAllTextMoves()
+                notation = ''
+                for i, move in enumerate(all_moves):
+                    is_even = False
+                    if i % 2 == 0:
+                        notation += '%d. ' % ((i / 2) + 1, )
+                        is_even = True
+
+                    notation += '%s ' % move
+
+                    if not is_even:
+                        notation += '\n'
+
+                self.root.main_text.text = notation
+                
 
             self.refresh_board()
 
-            self.prev_coord = None
-            self.current_coord = None
+            if valid_move:
+                self.prev_coord = None
+                self.current_coord = None
 
-
-        # if self.prev_coord and self.prev_coord != coord:
-        square.state = 'down'
-        square.state = 'normal'
+            else:
+                self.prev_coord = prev_coord
+                self.current_coord = current_coord
+            
 
 
     def refresh_board(self):
@@ -246,7 +273,11 @@ class ChessGameApp(App):
                 chess_grid.add_widget(l)
                 self.coords.append(l)
 
-            bt = ChessSquare()
+            light = i % 2 == (i / 8) % 2
+
+            background_color = LIGHT_SQUARE if light else DARK_SQUARE
+            print background_color
+            bt = ChessSquare(background_color)
             bt.coord = i
 
             chess_grid.add_widget(bt)

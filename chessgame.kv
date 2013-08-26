@@ -17,6 +17,7 @@ BoxLayout:
     orientation: "vertical"
 
     chess_grid: chess_grid
+    main_text: main_text
                 
 
     GridLayout:
@@ -26,3 +27,15 @@ BoxLayout:
         padding: 10
         spacing: 0
         size_hint: 1, 1
+
+
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint: 1, 0.2
+
+        
+        Label:
+            id: main_text
+            size_hint: 1, 1
+            padding: 10, 10
+            text: ""
