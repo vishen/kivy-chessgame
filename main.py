@@ -74,13 +74,17 @@ class ChessSquare(ToggleButton):
     def add_piece(self, piece):
         self.remove_widget(self.piece)
         self.piece = piece
-
-    def on_piece(self, instance, piece):
-
-        if piece:
+        if self.piece:
+            self.add_widget(piece)
             piece.set_size(self.size)
             piece.set_pos(self.pos)
-            self.add_widget(piece)
+            
+
+    # def on_piece(self, instance, piece):
+    #     if piece:
+    #         piece.set_size(self.size)
+    #         piece.set_pos(self.pos)
+    #         self.add_widget(piece)
 
 
     def remove_piece(self):
@@ -101,7 +105,7 @@ class ChessSquare(ToggleButton):
 
     def on_touch_down(self, touch):
         if super(ChessSquare, self).on_touch_down(touch):
-            app.process_move(self.coord, self)
+            app.process_move(self)
 
 
 class ChessPiece(Scatter):
@@ -119,6 +123,9 @@ class ChessPiece(Scatter):
         self.auto_bring_to_front = True
 
     def set_size(self, size):
+        # Set both sizes otherwise the image
+        # won't sit properly, and the scatter becomes larger than
+        # the image.
         self.size = size[0], size[1]
         self.image.size = size[0], size[1]
 
@@ -133,9 +140,6 @@ class ChessPiece(Scatter):
         if super(ChessPiece, self).on_touch_up(touch):
             if self.parent and self.moving:
                 app.check_piece_in_square(self)
-                # app.process_move(self.parent.coord, self.parent)
-                # self.pos = self.parent.pos
-            # self.parent.state = 'normal'
 
             self.moving = False
 
@@ -163,10 +167,14 @@ class ChessGameApp(App):
     def check_piece_in_square(self, piece):
         for square in self.squares:
             if square.collide_point(piece.center_x, piece.center_y):
-                return self.process_move(square.coord, square)
+                return self.process_move(square)
 
 
-    def process_move(self, coord, square):
+    def process_move(self, square):
+        prev_coord = self.prev_coord
+        current_coord = self.current_coord
+
+        coord = square.coord
         if self.prev_coord != coord:
             self.prev_coord = self.current_coord
             self.current_coord = coord
@@ -179,29 +187,33 @@ class ChessGameApp(App):
             print pc, cc
             self.chessboard.addTextMove('%s-%s' % (pc, cc))
 
-            square.state = 'down'
-            square.state = 'normal'
-                # square.remove_piece()
             self.refresh_board()
+
             self.prev_coord = None
             self.current_coord = None
 
-           
 
+        # if self.prev_coord and self.prev_coord != coord:
+        square.state = 'down'
+        square.state = 'normal'
 
 
     def refresh_board(self):
 
         squares = [item for sublist in self.chessboard.getBoard() for item in sublist]
 
-        if self.prev_coord and self.current_coord:
+        # Only deal with the moves played, so we don't do
+        # heaps of unnessacery adding and removing of widgets.
+        if self.prev_coord and self.current_coord and \
+            squares[self.squares[self.prev_coord].coord] == '.':
+
             prev_piece = self.squares[self.prev_coord].piece
             self.squares[self.prev_coord].remove_piece()
             self.squares[self.current_coord].add_piece(prev_piece)
 
             return
 
-
+        # On initialized
         for i, square in enumerate(squares):
             piece = None
             if square != '.':
