@@ -55,7 +55,7 @@ COLS_COORS = (
 COLOR_MAPS = {
     'black': (1, 1, 1, 1),
     'white': (0, 0, 0, 1),
-    'cream': get_color_from_hex('#ffffcc'),
+    'cream': get_color_from_hex('#FFFFFF'),
     'brown': get_color_from_hex('#bf9e7e'),
 }
 
@@ -66,24 +66,59 @@ def get_square_abbr(coord):
     return SQUARES[coord]
 
 class ChessCoord(Label):
-    on = BooleanProperty(False)
+    show = BooleanProperty(True)
+
+    _text = StringProperty('')
+
+    def on_show(self, *args):
+        if not self._text:
+            self._text = self.text
+
+        if self.show:
+            self.text = self._text
+
+        else:
+            self.text = ''
 
     
 class ChessSquare(Button):
     coord = NumericProperty(0)
     piece = ObjectProperty(None, allownone=True)
+    show_piece = BooleanProperty(True)
+    show_coord = BooleanProperty(False)
 
     def __init__(self, background_color, **kwargs):
         super(ChessSquare, self).__init__(**kwargs)
         self.background_color = background_color
+        self.background_normal = ''
+        self.markup = True
 
     def add_piece(self, piece):
         self.remove_widget(self.piece)
         self.piece = piece
-        if self.piece:
+        if self.piece and self.show_piece:
             self.add_widget(piece)
             piece.set_size(self.size)
             piece.set_pos(self.pos)
+
+    def on_release(self):
+        self.state = 'down'
+        app.process_move(self)
+
+    def on_show_piece(self, *args):
+        self.remove_widget(self.piece)
+        if self.show_piece:
+            self.add_widget(self.piece)
+
+    def on_show_coord(self, *args):
+        if self.show_coord:
+            self.text = '[color=%s]%s[/color]' % (COLOR_MAPS['black'], SQUARES[self.coord])
+
+        else:
+            self.text = ''
+
+
+
             
 
     # def on_piece(self, instance, piece):
@@ -109,9 +144,9 @@ class ChessSquare(Button):
         if self.piece:
             self.piece.set_pos(pos)
 
-    def on_touch_down(self, touch):
-        if super(ChessSquare, self).on_touch_down(touch):
-            app.process_move(self)
+    # def on_touch_down(self, touch):
+    #     if super(ChessSquare, self).on_touch_down(touch):
+    #         app.process_move(self)
 
 
 class ChessPiece(Scatter):
@@ -182,17 +217,28 @@ class ChessGameApp(App):
         current_coord = self.current_coord
 
         coord = square.coord
-        if self.prev_coord != coord:
-            self.prev_coord = self.current_coord
-            self.current_coord = coord
+        current_square = self.squares[coord]
 
-        valid_move = False
-        # A move has been made
+        self.prev_coord = current_coord
+        self.current_coord = coord
+
+        if self.prev_coord == self.current_coord:
+            self.squares[self.prev_coord].state = 'normal'
+            self.squares[self.current_coord].state = 'normal'
+
+            self.current_coord = None
+            self.prev_coord = None
+
+            return
+
+
+        valid_move = None
         if self.prev_coord and self.current_coord:
 
             pc = SQUARES[self.prev_coord]
             cc = SQUARES[self.current_coord]
-            print pc, cc
+
+            valid_move = False
             if self.chessboard.addTextMove('%s-%s' % (pc, cc)):
                 valid_move = True
 
@@ -205,7 +251,7 @@ class ChessGameApp(App):
                         notation += '%d. ' % ((i / 2) + 1, )
                         is_even = True
 
-                    notation += '%s ' % move
+                    notation += ' %s ' % move
 
                     if not is_even:
                         notation += '\n'
@@ -215,14 +261,32 @@ class ChessGameApp(App):
 
             self.refresh_board()
 
-            if valid_move:
-                self.prev_coord = None
-                self.current_coord = None
+        if not valid_move and self.prev_coord and self.current_coord:
+            self.prev_coord = prev_coord
+            self.current_coord = current_coord
+            current_square.state = 'normal'
 
-            else:
-                self.prev_coord = prev_coord
-                self.current_coord = current_coord
-            
+
+        elif valid_move:
+            self.squares[self.prev_coord].state = 'normal'
+            self.squares[self.current_coord].state = 'normal'
+
+            self.current_coord = None
+            self.prev_coord = None
+
+    def toggle_pieces(self, value):
+        for square in self.squares:
+            square.show_piece = value
+
+
+    def toggle_coordinates(self, value):
+        for coord in self.coords:
+            coord.show = value
+
+
+    def toggle_square_coords(self, value):
+        for square in self.squares:
+            square.show_coord = value
 
 
     def refresh_board(self):
@@ -285,6 +349,9 @@ class ChessGameApp(App):
 
 
         self.refresh_board()
+        self.toggle_pieces(True)
+        self.toggle_coordinates(True)
+        self.toggle_square_coords(True)
        
         return root
 
