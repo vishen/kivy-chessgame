@@ -16,7 +16,10 @@ from kivy.uix.scatter import Scatter
 
 from kivy.utils import get_color_from_hex
 
+from config import get_config
 from ChessBoard import ChessBoard
+
+config = get_config()
 
 SQUARES = [
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", 
@@ -96,7 +99,8 @@ class ChessSquare(Button):
     def add_piece(self, piece):
         self.remove_widget(self.piece)
         self.piece = piece
-        if self.piece and self.show_piece:
+        if self.piece:
+            self.piece.hide = not self.show_piece
             self.add_widget(piece)
             piece.set_size(self.size)
             piece.set_pos(self.pos)
@@ -106,20 +110,16 @@ class ChessSquare(Button):
         app.process_move(self)
 
     def on_show_piece(self, *args):
-        self.remove_widget(self.piece)
-        if self.show_piece:
-            self.add_widget(self.piece)
+        if self.piece:
+            self.piece.hide = not self.show_piece
 
     def on_show_coord(self, *args):
         if self.show_coord:
-            self.text = '[color=%s]%s[/color]' % (COLOR_MAPS['black'], SQUARES[self.coord])
+            self.text = '[color=%s]%s[/color]' % ('#000000', SQUARES[self.coord])
 
         else:
             self.text = ''
 
-
-
-            
 
     # def on_piece(self, instance, piece):
     #     if piece:
@@ -155,6 +155,8 @@ class ChessPiece(Scatter):
     moving = BooleanProperty(False)
     allowed_to_move = BooleanProperty(False)
 
+    hide = BooleanProperty(False)
+
 
     def __init__(self, image_source, **kwargs):
         super(ChessPiece, self).__init__(**kwargs)
@@ -163,6 +165,12 @@ class ChessPiece(Scatter):
         self.image.allow_stretch = True
         self.add_widget(self.image)
         self.auto_bring_to_front = True
+
+    def on_hide(self, *args):
+        self.remove_widget(self.image)
+
+        if not self.hide:
+            self.add_widget(self.image)
 
     def set_size(self, size):
         # Set both sizes otherwise the image
@@ -205,6 +213,13 @@ class ChessGameApp(App):
 
     prev_coord = None
     current_coord = None
+
+    SETTINGS_FUNC_MAP = {
+        'outside_coordinates': 'toggle_coordinates',
+        'show_pieces': 'toggle_pieces',
+        'square_coordinates': 'toggle_square_coords',
+    }
+
 
     def check_piece_in_square(self, piece):
         for square in self.squares:
@@ -282,11 +297,40 @@ class ChessGameApp(App):
     def toggle_coordinates(self, value):
         for coord in self.coords:
             coord.show = value
-
+    
 
     def toggle_square_coords(self, value):
         for square in self.squares:
             square.show_coord = value
+
+
+    def handle_settings_updates(self, section, key, value):
+        func = getattr(self, self.SETTINGS_FUNC_MAP[key])
+        func(self.value(value))
+        config.write()
+
+    def value(self, value):
+        if value == 'False' or value == '0':
+            return False
+
+        elif value == 'True' or value == '1':
+            return True
+
+        return bool(value)
+
+
+    def get_config_value(self, key, section='game', default=None):
+        return self.value(config.getdefault(section, key, default))
+
+
+    def handle_inital_settings(self):
+
+        self.toggle_pieces(self.get_config_value('show_pieces'))
+        self.toggle_coordinates(self.get_config_value('outside_coordinates'))
+        self.toggle_square_coords(self.get_config_value('square_coordinates'))
+
+        config.add_callback(self.handle_settings_updates)
+
 
 
     def refresh_board(self):
@@ -340,7 +384,6 @@ class ChessGameApp(App):
             light = i % 2 == (i / 8) % 2
 
             background_color = LIGHT_SQUARE if light else DARK_SQUARE
-            print background_color
             bt = ChessSquare(background_color)
             bt.coord = i
 
@@ -348,10 +391,13 @@ class ChessGameApp(App):
             self.squares.append(bt)
 
 
+        settings = root.game_settings
+        settings.add_json_panel('Chess', config, 'settings.json')
+
         self.refresh_board()
-        self.toggle_pieces(True)
-        self.toggle_coordinates(True)
-        self.toggle_square_coords(True)
+        self.handle_inital_settings()
+
+        # root.current = 'settings'
        
         return root
 

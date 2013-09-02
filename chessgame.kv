@@ -10,32 +10,65 @@
     scale_min: 0.5
 
 
-BoxLayout:
-
-    id: game
-    size_hint: 1, 1
-    orientation: "vertical"
+ScreenManager:
 
     chess_grid: chess_grid
     main_text: main_text
-                
 
-    GridLayout:
-        id: chess_grid
-        rows: 9
-        cols: 9
-        padding: 10
-        spacing: 0
-        size_hint: 1, 1
+    game_settings: game_settings
 
+    Screen:
+        name: "game"
 
-    BoxLayout:
-        orientation: "horizontal"
-        size_hint: 1, 0.2
+        BoxLayout:
 
-        
-        Label:
-            id: main_text
+            id: game
             size_hint: 1, 1
-            padding: 10, 10
-            text: ""
+            orientation: "vertical"
+
+            ActionBar:
+                pos_hint: {'top': 1}
+
+                ActionView:
+                    user_seperator: True
+
+                    ActionPrevious:
+                        title: 'Chess Trainer'
+                        with_previous: False
+
+                    ActionOverflow:
+                    
+                    ActionButton:
+                        text: 'Settings'
+                        on_press: root.current = "settings"
+
+            GridLayout:
+                id: chess_grid
+                rows: 9
+                cols: 9
+                padding: 10
+                spacing: 0
+                size_hint: 1, 1
+
+
+            BoxLayout:
+                orientation: "horizontal"
+                size_hint: 1, 0.2
+
+                
+                Label:
+                    id: main_text
+                    size_hint: 1, 1
+                    padding: 10, 10
+                    text: ""
+
+
+    Screen:
+        name: "settings"
+
+        Settings:
+            id: game_settings
+
+            on_close: root.current = "game"
+
+
