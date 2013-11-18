@@ -228,6 +228,7 @@ class ChessGameApp(App):
 
 
     def process_move(self, square):
+
         prev_coord = self.prev_coord
         current_coord = self.current_coord
 

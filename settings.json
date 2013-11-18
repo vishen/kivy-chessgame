@@ -1,0 +1,30 @@
+[
+    {
+        "type": "title",
+        "title": "Game"
+    },
+    {
+        "type": "bool",
+        "title": "Show Pieces",
+        "desc": "Shows or hides the pieces",
+        "section": "game",
+        "key": "show_pieces",
+        "true": "auto"
+    },
+    {
+        "type": "bool",
+        "title": "Show Outside Coordinates",
+        "desc": "Shows or hides the coordinates around the board.",
+        "section": "game",
+        "key": "outside_coordinates",
+        "true": "auto"
+    },
+    {
+        "type": "bool",
+        "title": "Show Square Coordinates",
+        "desc": "Shows or hides the square coordinates",
+        "section": "game",
+        "key": "square_coordinates",
+        "true": "auto"
+    }
+]
